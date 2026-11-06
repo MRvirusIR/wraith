@@ -1,6 +1,6 @@
 ---
 name: wraith
-description: Hunt AI attack surfaces with proof. Use when auditing an MCP server, agent tool definition, or agent skill for tool poisoning, hidden unicode, credential references, exfiltration sinks, capability mismatches, schema weaknesses, shadowing, or definition drift — and when turning such a finding into a reproducible, bounty-ready report.
+description: Hunt AI attack surfaces with proof. Use when auditing an MCP server, agent tool definition, or agent skill for tool poisoning, hidden unicode, credential references, exfiltration sinks, capability mismatches, schema weaknesses, lying MCP annotations, shadowing, or definition drift — and when turning such a finding into a reproducible, bounty-ready report.
 ---
 
 # Wraith — hunt the agent, not the web
@@ -50,6 +50,8 @@ Fix:    <the smallest change that closes it>
 - `high`/`critical` → an attacker can change what the agent does or where its data goes.
   Recommend the user disconnect the server until reviewed.
 - `medium` → a trust-boundary weakness that needs a second step. Report it, do not panic.
+- `annotation-lie` → the server told the client the tool was safe. Quote the annotation and the
+  contradicting field side by side; that pair is the whole report.
 - `definition-drift` after a pin → treat as hostile until proven otherwise. Re-review the
   full definition before the next call.
 
