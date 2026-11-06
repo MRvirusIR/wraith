@@ -11,7 +11,7 @@
                 └──────┬───────┘
                        ↓ tool definitions
                 ┌──────────────┐
-                │ rule engine  │  9 rules, pure functions, no I/O
+                │ rule engine  │ 10 rules, pure functions, no I/O
                 └──────┬───────┘
                        ↓ findings
         ┌──────────────┴───────────────┐
@@ -25,12 +25,13 @@
 | Module | Responsibility |
 |---|---|
 | `wraith/mcpclient.py` | Minimal MCP client over Streamable HTTP. JSON and SSE response shapes, `Mcp-Session-Id`, pagination, timeouts |
-| `wraith/rules.py` | The nine rules, canonical definition hashing, drift comparison |
+| `wraith/rules.py` | The ten rules, canonical definition hashing, drift comparison |
 | `wraith/unicode_scan.py` | Invisible character detection and Unicode-tag decoding |
 | `wraith/scope.py` | In-scope/out-of-scope matching, loopback exception, explicit override |
 | `wraith/store.py` | Pinned definition hashes (`.wraith/pins.json`) |
 | `wraith/evidence.py` | Run directories, redaction, manifest hashes |
 | `wraith/report.py` | Markdown writeup, per-platform labels, curl PoCs |
+| `wraith/corpus.py` | Offline batch analysis of captures into a publishable dataset |
 | `wraith/lab.py` | Deliberately poisoned MCP server used as the safe demo target |
 | `wraith/server.py` | Wraith itself as an MCP server over stdio |
 | `wraith/cli.py` | Argument parsing, output, exit codes |

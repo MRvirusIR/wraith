@@ -117,12 +117,14 @@ def main() -> int:
     print(svg_path)
 
     png_path = os.path.join(ROOT, "docs", "demo.png")
+    match = re.search(r'height="([0-9.]+)"', open(svg_path, encoding="utf-8").read(400))
+    height = int(float(match.group(1))) + 8 if match else 900
     try:
         subprocess.run(
             [
                 "chromium", "--headless=new", "--no-sandbox", "--disable-gpu",
                 "--disable-dev-shm-usage", "--hide-scrollbars", "--virtual-time-budget=3000",
-                "--force-device-scale-factor=2", "--window-size=1080,900",
+                "--force-device-scale-factor=2", f"--window-size=1080,{height}",
                 f"--screenshot={png_path}", f"file://{svg_path}",
             ],
             check=True, capture_output=True, timeout=180,

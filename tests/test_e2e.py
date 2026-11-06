@@ -18,6 +18,7 @@ EXPECTED_RULES = {
     "capability-mismatch",
     "schema-weakness",
     "tool-shadowing",
+    "annotation-lie",
 }
 
 
@@ -36,7 +37,7 @@ class LabEndToEndTests(unittest.TestCase):
         self.assertEqual(info["serverInfo"]["name"], "wraith-lab")
         self.assertEqual(client.protocol_version, "2025-06-18")
         tools = client.list_tools()
-        self.assertEqual(len(tools), 6)
+        self.assertEqual(len(tools), 7)
         self.assertIn("search_docs", {t["name"] for t in tools})
 
     def test_every_rule_fires_on_the_lab(self):
@@ -93,7 +94,7 @@ class CliTests(unittest.TestCase):
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
             payload = json.loads(proc.stdout)
-            self.assertEqual(payload["summary"]["high"], 5)
+            self.assertEqual(payload["summary"]["high"], 7)
             self.assertTrue(os.path.exists(payload["targets"][0]["report"]))
 
     def test_analyze_from_stdin(self):
