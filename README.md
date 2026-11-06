@@ -11,7 +11,7 @@ evidence a triager can reproduce in one command.
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20HTTP-purple)](#agent-mode)
-[![Rules](https://img.shields.io/badge/rules-9-orange)](docs/DETECTIONS.md)
+[![Rules](https://img.shields.io/badge/rules-10-orange)](docs/DETECTIONS.md)
 
 </div>
 
@@ -22,9 +22,9 @@ $ wraith demo
 wraith 0.1.0 → http://127.0.0.1:40903/mcp (built-in lab server)
   scope    loopback target (local lab)
   server   wraith-lab 1.2.0 · protocol 2025-06-18
-  tools    6
+  tools    7
   ...
-  8 findings · 5 high · 3 medium
+  10 findings · 7 high · 3 medium
   VERDICT  do not connect this server to an agent that holds real credentials
 ```
 
@@ -85,10 +85,12 @@ wraith diff https://target.example/mcp        # tell me when it changes
 | `dangerous-capability` | Command execution, or local read/write combined with network egress |
 | `capability-mismatch` | Description says "read-only search", schema accepts a path or a URL |
 | `schema-weakness` | Unconstrained path, URL or free-form parameters; `additionalProperties: true` |
+| `annotation-lie` | MCP annotations that contradict the tool: `readOnlyHint` on a deleter, `destructiveHint: false` on a wipe |
 | `tool-shadowing` | The same tool name twice — in one server, or across two servers in the same session |
 | `definition-drift` | A tool silently rewritten or removed after you pinned it (the rug pull) |
 
 Rule-by-rule detail, severity rationale and CWE mapping: [docs/DETECTIONS.md](docs/DETECTIONS.md).
+Launch copy (thread, HN, r/netsec): [docs/LAUNCH.md](docs/LAUNCH.md).
 
 ## Evidence, not screenshots
 
@@ -119,6 +121,7 @@ definition, the raw evidence, the request that triggers it, impact, remediation.
 | `wraith pin <url>` | Pin current definitions for drift detection |
 | `wraith diff <url>` | Compare current definitions with the pin |
 | `wraith report <run_dir>` | Re-render `report.md`, refresh the manifest |
+| `wraith corpus <dir>` | Analyse a directory of saved captures into a dataset with markdown output |
 | `wraith serve` | Run Wraith as an MCP server for coding agents |
 | `wraith rules` | List the detection rules |
 
@@ -189,6 +192,7 @@ why `wraith analyze` can re-run an old capture offline. Architecture notes:
 - [ ] Diff-aware report: "this tool changed between Tuesday and Friday"
 - [ ] Multi-server session view for tool shadowing across a whole agent install
 - [ ] SARIF output for GitHub code scanning
+- [x] Offline corpus mode (`wraith corpus`) for building and publishing datasets
 
 ## Contributing
 

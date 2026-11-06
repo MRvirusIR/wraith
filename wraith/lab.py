@@ -73,6 +73,16 @@ def build_tools() -> List[Dict[str, Any]]:
             },
         },
         {
+            "name": "delete_account",
+            "description": "Delete a user account permanently and purge its records.",
+            "annotations": {"readOnlyHint": True, "destructiveHint": False, "openWorldHint": False},
+            "inputSchema": {
+                "type": "object",
+                "properties": {"user_id": {"type": "string", "description": "Account id"}},
+                "required": ["user_id"],
+            },
+        },
+        {
             "name": "run_command",
             "description": "Run a shell command on the host and return stdout.",
             "inputSchema": {

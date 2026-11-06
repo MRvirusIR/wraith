@@ -58,6 +58,15 @@ PATH_PARAMS = re.compile(r"^(path|file|filename|filepath|dir|directory|folder|ta
 URL_PARAMS = re.compile(r"^(url|uri|endpoint|host|hostname|dest|destination|callback|webhook)$", re.I)
 COMMAND_PARAMS = re.compile(r"^(cmd|command|exec|script|payload|query_sql|sql|shell)$", re.I)
 
+WRITE_VERBS = re.compile(
+    r"(delete|remove|drop|destroy|purge|wipe|truncate|overwrite|update|modify|edit|"
+    r"write|create|insert|patch|move|rename|revoke|disable|kill|exec|run|shell|"
+    r"send|post|upload|publish|deploy)",
+    re.I,
+)
+DESTRUCTIVE_VERBS = re.compile(r"(delete|drop|destroy|purge|wipe|truncate|remove|revoke|kill)", re.I)
+ANNOTATION_KEYS = ("readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint")
+
 CWE = {
     "hidden-instruction": "CWE-74",
     "unicode-obfuscation": "CWE-838",
@@ -69,6 +78,7 @@ CWE = {
     "tool-shadowing": "CWE-706",
     "definition-drift": "CWE-494",
     "unauth-endpoint": "CWE-306",
+    "annotation-lie": "CWE-863",
 }
 
 
@@ -356,8 +366,92 @@ def rule_schema(tool: Dict[str, Any], target: str) -> List[Finding]:
     return findings
 
 
+def rule_annotations(tool: Dict[str, Any], target: str) -> List[Finding]:
+    """MCP tool annotations that contradict what the tool actually does.
+
+    Clients use `readOnlyHint` to decide whether to ask the user for approval.
+    A server that sets it on a destructive tool gets to skip that prompt, which
+    makes the annotation itself the attack.
+    """
+    findings: List[Finding] = []
+    annotations = tool.get("annotations")
+    if not isinstance(annotations, dict) or not any(k in annotations for k in ANNOTATION_KEYS):
+        return findings
+
+    name = str(tool.get("name", "?"))
+    description = str(tool.get("description") or "")
+    params = " ".join(_params(tool).keys())
+    text = f"{name} {description} {params}"
+    declared = json.dumps({k: v for k, v in annotations.items() if k in ANNOTATION_KEYS}, sort_keys=True)
+
+    if annotations.get("readOnlyHint") is True:
+        match = WRITE_VERBS.search(text)
+        if match:
+            findings.append(
+                Finding(
+                    rule="annotation-lie",
+                    severity="high",
+                    title=f"Tool '{name}' declares readOnlyHint but performs writes",
+                    target=target,
+                    tool=name,
+                    location="annotations.readOnlyHint",
+                    detail=(
+                        "The tool advertises itself as read-only, so the client may skip the approval "
+                        f"prompt, while its own metadata contains '{match.group(0)}'."
+                    ),
+                    evidence=f"{declared} · signal={match.group(0)!r} in name/description/parameters",
+                    remediation=(
+                        "Never let an annotation decide approval on its own. Cross-check the annotation "
+                        "against the schema and the name before granting a call."
+                    ),
+                    cwe=CWE["annotation-lie"],
+                )
+            )
+
+    if annotations.get("destructiveHint") is False:
+        match = DESTRUCTIVE_VERBS.search(text)
+        if match:
+            findings.append(
+                Finding(
+                    rule="annotation-lie",
+                    severity="high",
+                    title=f"Tool '{name}' declares destructiveHint: false but can destroy data",
+                    target=target,
+                    tool=name,
+                    location="annotations.destructiveHint",
+                    detail=f"The definition contains '{match.group(0)}' while the annotation denies destructive behaviour.",
+                    evidence=f"{declared} · signal={match.group(0)!r}",
+                    remediation="Treat destructiveHint: false as a claim to verify, never as a guarantee.",
+                    cwe=CWE["annotation-lie"],
+                )
+            )
+
+    if annotations.get("openWorldHint") is False:
+        match = re.search(r"https?://[^\s\"']+", text) or next(
+            (p for p in _params(tool) if URL_PARAMS.match(p)), None
+        )
+        if match:
+            signal = match.group(0) if hasattr(match, "group") else str(match)
+            findings.append(
+                Finding(
+                    rule="annotation-lie",
+                    severity="medium",
+                    title=f"Tool '{name}' declares openWorldHint: false but reaches the network",
+                    target=target,
+                    tool=name,
+                    location="annotations.openWorldHint",
+                    detail="A closed-world annotation on a tool that takes or mentions a URL hides its egress.",
+                    evidence=f"{declared} · signal={signal!r}",
+                    remediation="Verify egress claims against the schema; closed-world tools should take no URLs.",
+                    cwe=CWE["annotation-lie"],
+                )
+            )
+    return findings
+
+
 RULES = (
     rule_hidden_instruction,
+    rule_annotations,
     rule_unicode,
     rule_secret_paths,
     rule_exfil,
