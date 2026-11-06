@@ -7,7 +7,7 @@ import os
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
-from wraith import __version__, color, corpus, evidence, lab, report, rules, scope, store
+from wraith import __version__, color, corpus, evidence, lab, report, rulebook, rules, sarif, scope, store
 from wraith.findings import Finding, dedupe, summarize, to_json, worst
 from wraith.mcpclient import MCPClient, MCPError
 
@@ -39,6 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     probe = sub.add_parser("probe", parents=[common], help="probe one or more MCP endpoints and analyse their tools")
     probe.add_argument("targets", nargs="+", help="MCP endpoint URLs, e.g. http://127.0.0.1:8787/mcp")
     probe.add_argument("--json", action="store_true", help="machine readable output")
+    probe.add_argument("--sarif", metavar="FILE", help="also write a SARIF 2.1.0 report for code scanning")
     probe.add_argument("--timeout", type=float, default=10.0, help="per-request timeout in seconds")
     probe.add_argument("--header", action="append", default=[], metavar="K:V", help="extra HTTP header")
     probe.add_argument("--pin", action="store_true", help="pin the current tool definitions after probing")
@@ -54,6 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("file", help="path to a JSON file, or - for stdin")
     analyze.add_argument("--target", default="file", help="label to use in the output")
     analyze.add_argument("--json", action="store_true")
+    analyze.add_argument("--sarif", metavar="FILE")
     analyze.add_argument("--fail-on", default="never", choices=FAIL_ON_ORDER + ["never"])
 
     demo = sub.add_parser("demo", parents=[common], help="run the built-in poisoned lab server and probe it")
@@ -61,6 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--keep", action="store_true", help="keep the lab running afterwards")
     demo.add_argument("--json", action="store_true")
     demo.add_argument("--evidence-dir", default="runs")
+    demo.add_argument("--sarif", metavar="FILE")
 
     lab_cmd = sub.add_parser("lab", parents=[common], help="serve the deliberately poisoned lab MCP server")
     lab_cmd.add_argument("--host", default="127.0.0.1")
@@ -110,6 +113,10 @@ def build_parser() -> argparse.ArgumentParser:
     corpus_cmd.add_argument("--markdown", metavar="FILE", help="write a markdown report to FILE")
     corpus_cmd.add_argument("--title", default="Wraith corpus report")
     corpus_cmd.add_argument("--fail-on", default="never", choices=FAIL_ON_ORDER + ["never"])
+
+    init_cmd = sub.add_parser("init", parents=[common], help="create a scope file and workspace in this directory")
+    init_cmd.add_argument("--program", default="my-program", help="program id to start with")
+    init_cmd.add_argument("--force", action="store_true", help="overwrite an existing scope file")
 
     sub.add_parser("serve", help="run Wraith as an MCP server over stdio (for coding agents)")
     sub.add_parser("rules", help="list the detection rules")
@@ -313,6 +320,11 @@ def cmd_probe(args: argparse.Namespace) -> int:
     )
 
     flat: List[Finding] = [f for findings in results.values() for f in findings]
+    if args.sarif:
+        with open(args.sarif, "w", encoding="utf-8") as handle:
+            json.dump(sarif.build(args.targets[0], flat, rulebook.CATALOG), handle, indent=2)
+        if not args.json and not args.quiet:
+            print(f"  {color.paint('sarif', 'gray')}    {args.sarif}")
     if args.json:
         print(json.dumps({"targets": payloads, "summary": summarize(flat)}, indent=2, ensure_ascii=False))
     else:
@@ -340,6 +352,9 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         print(color.paint("expected a tools/list payload: {\"tools\": [...]}", "red"))
         return EXIT_ERROR
     findings = dedupe(rules.analyze_tools(tools, args.target))
+    if args.sarif:
+        with open(args.sarif, "w", encoding="utf-8") as handle:
+            json.dump(sarif.build(args.target, findings, rulebook.CATALOG), handle, indent=2)
     if args.json:
         print(to_json(findings))
     else:
@@ -363,6 +378,9 @@ def cmd_demo(args: argparse.Namespace) -> int:
             quiet=args.quiet or args.json,
         )
         flat = [f for findings in results.values() for f in findings]
+        if args.sarif:
+            with open(args.sarif, "w", encoding="utf-8") as handle:
+                json.dump(sarif.build(target, flat, rulebook.CATALOG), handle, indent=2)
         if args.json:
             print(json.dumps({"targets": payloads, "summary": summarize(flat)}, indent=2, ensure_ascii=False))
         else:
@@ -529,6 +547,33 @@ def cmd_report(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_init(args: argparse.Namespace) -> int:
+    color.set_mode(args.color)
+    if os.path.exists(scope.SCOPE_FILE) and not args.force:
+        print(color.paint(f"{scope.SCOPE_FILE} already exists (use --force to replace it)", "yellow"))
+        return EXIT_ERROR
+    state = scope.ScopeState(
+        [
+            scope.Program(
+                id=args.program,
+                name=args.program,
+                in_scope=["*.example.com"],
+                out_of_scope=["admin.example.com"],
+                notes="Replace these patterns with the program's real scope before probing anything.",
+            )
+        ]
+    )
+    path = scope.save(state, scope.SCOPE_FILE)
+    os.makedirs(store.STORE_DIR, exist_ok=True)
+    print(f"created {path}")
+    print()
+    print("next:")
+    print("  1. edit the patterns to match the program's published scope")
+    print("  2. wraith scope check https://api.example.com/mcp")
+    print("  3. wraith probe https://api.example.com/mcp --pin")
+    return EXIT_OK
+
+
 def cmd_corpus(args: argparse.Namespace) -> int:
     color.set_mode(args.color)
     captures = corpus.analyze(args.path)
@@ -604,6 +649,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "report": cmd_report,
         "rules": cmd_rules,
         "corpus": cmd_corpus,
+        "init": cmd_init,
     }
     if args.command == "serve":
         from wraith.server import serve

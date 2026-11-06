@@ -120,12 +120,13 @@ definition, the raw evidence, the request that triggers it, impact, remediation.
 | `wraith scope add/list/check/remove` | Manage the authorised scope list |
 | `wraith pin <url>` | Pin current definitions for drift detection |
 | `wraith diff <url>` | Compare current definitions with the pin |
+| `wraith init` | Create a scope file and workspace in the current directory |
 | `wraith report <run_dir>` | Re-render `report.md`, refresh the manifest |
 | `wraith corpus <dir>` | Analyse a directory of saved captures into a dataset with markdown output |
 | `wraith serve` | Run Wraith as an MCP server for coding agents |
 | `wraith rules` | List the detection rules |
 
-Useful flags: `--json`, `--fail-on high`, `--diff`, `--pin`, `--no-evidence`,
+Useful flags: `--json`, `--sarif FILE`, `--fail-on high`, `--diff`, `--pin`, `--no-evidence`,
 `--platform h1|bugcrowd|generic`, `--header K:V`.
 
 ## Agent mode
@@ -159,6 +160,9 @@ A ready-to-drop-in agent skill lives in [SKILL.md](SKILL.md).
 Exit codes: `0` clean, `1` findings at or above `--fail-on`, `2` blocked or unreachable.
 Run it nightly against your own production MCP servers and get a diff when a tool changes.
 
+There is a composite action (`uses: MRvirusIR/wraith/.github/actions/wraith@main`) that probes
+your endpoint and writes SARIF for GitHub code scanning. Details: [docs/CI.md](docs/CI.md).
+
 ## Scope and ethics
 
 Wraith refuses to touch a host that is not in scope. Loopback is allowed so the lab works;
@@ -187,11 +191,12 @@ why `wraith analyze` can re-run an old capture offline. Architecture notes:
 ## Roadmap
 
 - [ ] Streamable HTTP server mode (so agents can connect over the network)
+- [ ] Rule packs loaded from data files instead of code
 - [ ] SSE + WebSocket transport coverage for older servers
 - [ ] Rule packs as data, not code, so the community can ship new detections
 - [ ] Diff-aware report: "this tool changed between Tuesday and Friday"
 - [ ] Multi-server session view for tool shadowing across a whole agent install
-- [ ] SARIF output for GitHub code scanning
+- [x] SARIF output for GitHub code scanning
 - [x] Offline corpus mode (`wraith corpus`) for building and publishing datasets
 
 ## Contributing
