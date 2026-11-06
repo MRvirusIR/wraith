@@ -6,7 +6,11 @@ dist/
 *.egg-info/
 runs/
 .scope.json
+.wraith-scope.json
+.wraith/
 *.log
 .DS_Store
 docs/demo.png
+docs/demo.gif
 docs/demo.html
+docs/social.png

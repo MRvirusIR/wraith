@@ -1,0 +1,34 @@
+name: Wraith MCP audit
+description: Probe an MCP endpoint for tool poisoning and upload the findings as SARIF
+author: BugCod3
+branding:
+  icon: shield
+  color: purple
+inputs:
+  endpoint:
+    description: MCP endpoint URL to audit
+    required: true
+  fail-on:
+    description: Severity that fails the job (critical, high, medium, low, never)
+    required: false
+    default: high
+  sarif-file:
+    description: Where to write the SARIF report
+    required: false
+    default: wraith.sarif
+  diff:
+    description: Compare against the pinned definitions in .wraith/pins.json
+    required: false
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - name: Install Wraith
+      shell: bash
+      run: pipx install "git+https://github.com/MRvirusIR/wraith" || pip install "git+https://github.com/MRvirusIR/wraith"
+    - name: Audit MCP endpoint
+      shell: bash
+      run: |
+        ARGS=("${{ inputs.endpoint }}" --sarif "${{ inputs.sarif-file }}" --fail-on "${{ inputs.fail-on }}" --i-own-this-target)
+        if [ "${{ inputs.diff }}" = "true" ]; then ARGS+=(--diff); fi
+        wraith probe "${ARGS[@]}"

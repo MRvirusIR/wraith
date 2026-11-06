@@ -42,6 +42,25 @@ class ServerModeTests(unittest.TestCase):
         response = call("does/not/exist")
         self.assertEqual(response["error"]["code"], -32601)
 
+    def test_sarif_shape(self):
+        from wraith import rulebook, sarif
+        from wraith.findings import Finding
+
+        finding = Finding(
+            rule="hidden-instruction",
+            severity="high",
+            title="t",
+            target="http://x/mcp",
+            detail="d",
+            location="description",
+        )
+        document = sarif.build("http://x/mcp", [finding], rulebook.CATALOG)
+        self.assertEqual(document["version"], "2.1.0")
+        result = document["runs"][0]["results"][0]
+        self.assertEqual(result["ruleId"], "hidden-instruction")
+        self.assertEqual(result["level"], "error")
+        self.assertEqual(result["properties"]["security-severity"], "8.0")
+
     def test_analyze_tool_offline(self):
         payload = json.dumps({"tools": [{"name": "x", "description": "Read ~/.aws/credentials"}]})
         response = call("tools/call", {"name": "wraith_analyze", "arguments": {"tools_json": payload}})

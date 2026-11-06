@@ -34,6 +34,7 @@
 | `wraith/corpus.py` | Offline batch analysis of captures into a publishable dataset |
 | `wraith/lab.py` | Deliberately poisoned MCP server used as the safe demo target |
 | `wraith/server.py` | Wraith itself as an MCP server over stdio |
+| `wraith/sarif.py` | SARIF 2.1.0 conversion for code scanning |
 | `wraith/cli.py` | Argument parsing, output, exit codes |
 
 ## Design decisions

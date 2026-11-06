@@ -14,7 +14,7 @@ Thanks for helping. The most useful contributions, in order:
 ```bash
 git clone https://github.com/MRvirusIR/wraith
 cd wraith
-python3 -m unittest discover -s tests -t .     # 59 tests, no dependencies
+python3 -m unittest discover -s tests -t .     # 60 tests, no dependencies
 python3 -m wraith demo                          # smoke test the whole pipeline
 ```
 
