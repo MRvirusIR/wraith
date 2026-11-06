@@ -7,6 +7,10 @@ Everything below is written to be pasted, not admired. Replace the links if the 
 - Telegram: https://t.me/BugCod3
 - Site: https://BugCod3.com
 
+Assets: `docs/demo.mp4` (H.264, 1960x1858, 6s, for X and Telegram), `docs/demo.gif` (fallback for
+clients that will not play video), `docs/social.png` (1280x640, GitHub social preview and cards).
+Rebuild them with `make video`, `make gif`, `make social`.
+
 ## Positioning
 
 **One-liner**
