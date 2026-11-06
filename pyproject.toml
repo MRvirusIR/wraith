@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wraithhunt"
+version = "0.1.0"
+description = "Proof of impact for AI attack surfaces. Probe MCP servers, catch tool poisoning, ship bounty-grade evidence."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "BugCod3", email = "a.h104110@gmail.com" }]
+keywords = ["mcp", "bug-bounty", "security", "ai-agents", "prompt-injection", "tool-poisoning"]
+classifiers = [
+  "Environment :: Console",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Security",
+]
+dependencies = []
+
+[project.scripts]
+wraith = "wraith.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/MRvirusIR/wraith"
+Issues = "https://github.com/MRvirusIR/wraith/issues"
+
+[tool.setuptools]
+packages = ["wraith"]

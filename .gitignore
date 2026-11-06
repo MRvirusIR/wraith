@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.egg-info/
+runs/
+.scope.json
+*.log
+.DS_Store
+docs/demo.png
+docs/demo.html
