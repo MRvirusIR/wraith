@@ -7,7 +7,7 @@ import os
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
-from wraith import __version__, color, evidence, lab, report, rules, scope, store
+from wraith import __version__, color, corpus, evidence, lab, report, rules, scope, store
 from wraith.findings import Finding, dedupe, summarize, to_json, worst
 from wraith.mcpclient import MCPClient, MCPError
 
@@ -101,6 +101,15 @@ def build_parser() -> argparse.ArgumentParser:
     report_cmd = sub.add_parser("report", parents=[common], help="re-render report.md for an existing run directory")
     report_cmd.add_argument("run_dir")
     report_cmd.add_argument("--platform", default="generic", choices=sorted(report.PLATFORMS))
+
+    corpus_cmd = sub.add_parser(
+        "corpus", parents=[common], help="turn a directory of saved tools/list captures into a dataset"
+    )
+    corpus_cmd.add_argument("path", help="file or directory of captures (runs/, exports, fixtures)")
+    corpus_cmd.add_argument("--json", action="store_true")
+    corpus_cmd.add_argument("--markdown", metavar="FILE", help="write a markdown report to FILE")
+    corpus_cmd.add_argument("--title", default="Wraith corpus report")
+    corpus_cmd.add_argument("--fail-on", default="never", choices=FAIL_ON_ORDER + ["never"])
 
     sub.add_parser("serve", help="run Wraith as an MCP server over stdio (for coding agents)")
     sub.add_parser("rules", help="list the detection rules")
@@ -520,6 +529,56 @@ def cmd_report(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_corpus(args: argparse.Namespace) -> int:
+    color.set_mode(args.color)
+    captures = corpus.analyze(args.path)
+    if not captures:
+        print(color.paint(f"no tools/list captures found under {args.path}", "red"))
+        return EXIT_ERROR
+    stats = corpus.aggregate(captures)
+    markdown = corpus.render_markdown(captures, stats, title=args.title)
+
+    if args.markdown:
+        with open(args.markdown, "w", encoding="utf-8") as handle:
+            handle.write(markdown)
+
+    if args.json:
+        print(json.dumps({"stats": stats, "captures": [c.to_dict() for c in captures]}, indent=2, ensure_ascii=False))
+        flat = [f for capture in captures for f in capture.findings]
+        return _fail_exit(flat, args.fail_on)
+
+    total = stats["captures"]
+    percent = round(100 * stats["affected_captures"] / total)
+    print(f"{color.paint('wraith', 'bold', 'cyan')} {color.paint(__version__, 'gray')} → corpus {args.path}")
+    print(f"  {color.paint('captures', 'gray')}   {total}")
+    print(f"  {color.paint('tools', 'gray')}      {stats['tools']}")
+    severity = stats["severity"]
+    parts = [f"{severity[s]} {s}" for s in ("critical", "high", "medium", "low") if severity[s]]
+    print(f"  {color.paint('findings', 'gray')}   {stats['findings']}" + (f" · {' · '.join(parts)}" if parts else ""))
+    print(
+        f"  {color.paint('affected', 'gray')}   {stats['affected_captures']}/{total} captures "
+        f"({percent}%) had a high or critical finding"
+    )
+    print()
+    print(f"  {color.paint('rule'.ljust(26) + 'high  med  low  total', 'bold')}")
+    for rule_id, bucket in sorted(stats["rules"].items(), key=lambda item: -sum(item[1].values())):
+        print(
+            f"  {rule_id.ljust(26)}{str(bucket['high']).rjust(4)}  {str(bucket['medium']).rjust(3)}  "
+            f"{str(bucket['low']).rjust(3)}  {str(sum(bucket.values())).rjust(5)}"
+        )
+    print()
+    print(f"  {color.paint('worst captures', 'bold')}")
+    for capture in sorted(captures, key=lambda c: (corpus.severity_rank(c.worst), -len(c.findings)))[:5]:
+        print(
+            f"  {color.severity_badge(capture.worst)} {capture.target[:52].ljust(52)} "
+            f"{str(capture.tool_count).rjust(2)} tools · {len(capture.findings)} findings"
+        )
+    if args.markdown:
+        print(f"  {color.paint('report', 'gray')} {args.markdown}")
+    flat = [f for capture in captures for f in capture.findings]
+    return _fail_exit(flat, args.fail_on)
+
+
 def cmd_rules(_args: argparse.Namespace) -> int:
     from wraith import rulebook
 
@@ -544,6 +603,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "diff": cmd_diff,
         "report": cmd_report,
         "rules": cmd_rules,
+        "corpus": cmd_corpus,
     }
     if args.command == "serve":
         from wraith.server import serve
