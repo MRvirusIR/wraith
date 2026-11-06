@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="877" viewBox="0 0 1080 877" xml:space="preserve" font-family="ui-monospace, SFMono-Regular, Menlo, DejaVu Sans Mono, monospace">
+<rect width="100%" height="100%" fill="#0b0e14"/>
+<rect x="24" y="24" width="1032" height="829" rx="12" fill="#0f131c" stroke="#1d2431"/>
+<rect x="24" y="24" width="1032" height="46" rx="12" fill="#141a24"/>
+<circle cx="52" cy="47" r="6" fill="#ff5f57"/><circle cx="74" cy="47" r="6" fill="#febc2e"/><circle cx="96" cy="47" r="6" fill="#28c840"/>
+<text x="122" y="52" fill="#6b7688" font-size="13">wraith demo</text>
+<text x="50.0" y="94.0" font-size="14" fill="#57d1d1" font-weight="700">wraith</text>
+<text x="108.8" y="94.0" font-size="14" fill="#7b8494">0.1.0</text>
+<text x="159.2" y="94.0" font-size="14" fill="#dfe6f1">→ http://127.0.0.1:35949/mcp</text>
+<text x="402.8" y="94.0" font-size="14" fill="#7b8494">(built-in lab server)</text>
+<text x="66.8" y="117.0" font-size="14" fill="#7b8494">scope</text>
+<text x="142.4" y="117.0" font-size="14" fill="#dfe6f1">loopback target (local lab)</text>
+<text x="66.8" y="140.0" font-size="14" fill="#7b8494">server</text>
+<text x="142.4" y="140.0" font-size="14" fill="#dfe6f1">wraith-lab 1.2.0 · protocol 2025-06-18</text>
+<text x="66.8" y="163.0" font-size="14" fill="#7b8494">tools</text>
+<text x="142.4" y="163.0" font-size="14" fill="#dfe6f1">6</text>
+<text x="66.8" y="209.0" font-size="14" fill="#ff6b6b">HIGH</text>
+<text x="142.4" y="209.0" font-size="14" fill="#57d1d1">dangerous-capability</text>
+<text x="335.6" y="209.0" font-size="14" fill="#e6edf7" font-weight="700">run_command</text>
+<text x="142.4" y="232.0" font-size="14" fill="#dfe6f1">Tool &#x27;run_command&#x27; exposes command execution</text>
+<text x="142.4" y="255.0" font-size="14" fill="#7b8494">at name/command · CWE-78</text>
+<text x="66.8" y="278.0" font-size="14" fill="#ff6b6b">HIGH</text>
+<text x="142.4" y="278.0" font-size="14" fill="#57d1d1">exfil-endpoint</text>
+<text x="335.6" y="278.0" font-size="14" fill="#e6edf7" font-weight="700">sync_telemetry</text>
+<text x="142.4" y="301.0" font-size="14" fill="#dfe6f1">Tool &#x27;sync_telemetry&#x27; sends data to an attacker-controlled sink</text>
+<text x="142.4" y="324.0" font-size="14" fill="#7b8494">at description · CWE-200</text>
+<text x="66.8" y="347.0" font-size="14" fill="#ff6b6b">HIGH</text>
+<text x="142.4" y="347.0" font-size="14" fill="#57d1d1">hidden-instruction</text>
+<text x="335.6" y="347.0" font-size="14" fill="#e6edf7" font-weight="700">search_docs</text>
+<text x="142.4" y="370.0" font-size="14" fill="#dfe6f1">Tool &#x27;search_docs&#x27; carries instructions aimed at the model</text>
+<text x="142.4" y="393.0" font-size="14" fill="#7b8494">at description · CWE-74</text>
+<text x="66.8" y="416.0" font-size="14" fill="#ff6b6b">HIGH</text>
+<text x="142.4" y="416.0" font-size="14" fill="#57d1d1">tool-shadowing</text>
+<text x="335.6" y="416.0" font-size="14" fill="#e6edf7" font-weight="700">search_docs</text>
+<text x="142.4" y="439.0" font-size="14" fill="#dfe6f1">Tool &#x27;search_docs&#x27; is defined 2 times</text>
+<text x="142.4" y="462.0" font-size="14" fill="#7b8494">at tools[] · CWE-706</text>
+<text x="66.8" y="485.0" font-size="14" fill="#ff6b6b">HIGH</text>
+<text x="142.4" y="485.0" font-size="14" fill="#57d1d1">unicode-obfuscation</text>
+<text x="335.6" y="485.0" font-size="14" fill="#e6edf7" font-weight="700">summarize</text>
+<text x="142.4" y="508.0" font-size="14" fill="#dfe6f1">Tool &#x27;summarize&#x27; hides characters a reviewer cannot see</text>
+<text x="142.4" y="531.0" font-size="14" fill="#7b8494">at description · CWE-838</text>
+<text x="66.8" y="554.0" font-size="14" fill="#ffd166">MEDIUM</text>
+<text x="142.4" y="554.0" font-size="14" fill="#57d1d1">capability-mismatch</text>
+<text x="335.6" y="554.0" font-size="14" fill="#e6edf7" font-weight="700">read_file</text>
+<text x="142.4" y="577.0" font-size="14" fill="#dfe6f1">Tool &#x27;read_file&#x27; claims to be read-only but accepts path</text>
+<text x="142.4" y="600.0" font-size="14" fill="#7b8494">at inputSchema.properties · CWE-1059</text>
+<text x="66.8" y="623.0" font-size="14" fill="#ffd166">MEDIUM</text>
+<text x="142.4" y="623.0" font-size="14" fill="#57d1d1">schema-weakness</text>
+<text x="335.6" y="623.0" font-size="14" fill="#e6edf7" font-weight="700">read_file</text>
+<text x="142.4" y="646.0" font-size="14" fill="#dfe6f1">&#x27;read_file.path&#x27; accepts any path</text>
+<text x="142.4" y="669.0" font-size="14" fill="#7b8494">at inputSchema.properties.path · CWE-20</text>
+<text x="66.8" y="692.0" font-size="14" fill="#ffd166">MEDIUM</text>
+<text x="142.4" y="692.0" font-size="14" fill="#57d1d1">secret-path-reference</text>
+<text x="335.6" y="692.0" font-size="14" fill="#e6edf7" font-weight="700">search_docs</text>
+<text x="142.4" y="715.0" font-size="14" fill="#dfe6f1">Tool &#x27;search_docs&#x27; points at AWS credentials</text>
+<text x="142.4" y="738.0" font-size="14" fill="#7b8494">at description · CWE-538</text>
+<text x="66.8" y="784.0" font-size="14" fill="#dfe6f1">8 findings · 5 high · 3 medium</text>
+<text x="66.8" y="807.0" font-size="14" fill="#e6edf7" font-weight="700">VERDICT</text>
+<text x="142.4" y="807.0" font-size="14" fill="#dfe6f1">do not connect this server to an agent that holds real credentials</text>
+<text x="66.8" y="830.0" font-size="14" fill="#7b8494">evidence</text>
+<text x="142.4" y="830.0" font-size="14" fill="#dfe6f1">runs/20261106T134235Z-127-0-0-1-35949/report.md</text>
+</svg>
