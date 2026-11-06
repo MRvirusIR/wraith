@@ -1,0 +1,35 @@
+name: False positive
+description: A rule fired on a definition that is actually fine
+title: "fp: "
+labels: ["false-positive"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks — precision matters more than coverage here. A false positive is a real bug.
+  - type: input
+    id: rule
+    attributes:
+      label: Rule
+      placeholder: hidden-instruction
+    validations:
+      required: true
+  - type: textarea
+    id: definition
+    attributes:
+      label: The tool definition that fired
+      description: Paste the raw JSON. Remove anything sensitive first.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is it a false positive?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Wraith version
+      placeholder: "wraith --version"

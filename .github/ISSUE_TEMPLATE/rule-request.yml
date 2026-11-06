@@ -1,0 +1,32 @@
+name: New rule
+description: A poisoning pattern Wraith should detect
+title: "rule: "
+labels: ["rule"]
+body:
+  - type: textarea
+    id: pattern
+    attributes:
+      label: The pattern
+      description: What does the hostile definition look like, and what does it achieve?
+    validations:
+      required: true
+  - type: textarea
+    id: fixture
+    attributes:
+      label: A fixture that should fire
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: negative
+    attributes:
+      label: A fixture that should NOT fire
+      description: The closest benign definition you can think of.
+      render: json
+    validations:
+      required: true
+  - type: input
+    id: severity
+    attributes:
+      label: Suggested severity
+      placeholder: high
