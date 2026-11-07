@@ -6,6 +6,7 @@ import json
 import os
 import sys
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 from wraith import __version__, color, corpus, evidence, lab, report, rulebook, rules, sarif, scope, store
 from wraith.findings import Finding, dedupe, summarize, to_json, worst
@@ -64,6 +65,8 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--json", action="store_true")
     demo.add_argument("--evidence-dir", default="runs")
     demo.add_argument("--sarif", metavar="FILE")
+    demo.add_argument("--fail-on", default="never", choices=FAIL_ON_ORDER + ["never"],
+                      help="exit 1 at or above this severity")
 
     lab_cmd = sub.add_parser("lab", parents=[common], help="serve the deliberately poisoned lab MCP server")
     lab_cmd.add_argument("--host", default="127.0.0.1")
@@ -119,7 +122,7 @@ def build_parser() -> argparse.ArgumentParser:
     init_cmd.add_argument("--force", action="store_true", help="overwrite an existing scope file")
 
     sub.add_parser("serve", help="run Wraith as an MCP server over stdio (for coding agents)")
-    sub.add_parser("rules", help="list the detection rules")
+    sub.add_parser("rules", parents=[common], help="list the detection rules")
 
     return parser
 
@@ -162,10 +165,25 @@ def _parse_headers(values: List[str]) -> Dict[str, str]:
     headers = {}
     for item in values:
         if ":" not in item:
-            raise SystemExit(f"bad --header value (want K:V): {item}")
+            print(f"wraith: error: bad --header value (want K:V): {item}", file=sys.stderr)
+            raise SystemExit(EXIT_ERROR)
         key, value = item.split(":", 1)
+        if not key.strip():
+            print(f"wraith: error: bad --header value, empty name: {item}", file=sys.stderr)
+            raise SystemExit(EXIT_ERROR)
         headers[key.strip()] = value.strip()
     return headers
+
+
+def _validate_targets(targets: List[str]) -> Optional[str]:
+    """Return a readable problem if any target is not a usable http(s) URL."""
+    for target in targets:
+        parsed = urlparse(target)
+        if parsed.scheme not in ("http", "https"):
+            return f"target must be an http(s) URL, got: {target!r}"
+        if not parsed.netloc:
+            return f"target is missing a host: {target!r}"
+    return None
 
 
 def _fail_exit(findings: List[Finding], fail_on: str) -> int:
@@ -303,6 +321,10 @@ def run_probe(
 
 def cmd_probe(args: argparse.Namespace) -> int:
     color.set_mode(args.color)
+    problem = _validate_targets(args.targets)
+    if problem:
+        print(color.paint(f"error: {problem}", "red"))
+        return EXIT_ERROR
     if not args.quiet and not args.json:
         print(f"{color.paint('wraith', 'bold', 'cyan')} {color.paint(__version__, 'gray')} → {', '.join(args.targets)}")
     results, run_dir, payloads = run_probe(
@@ -388,7 +410,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
                 _print_findings(findings, quiet=args.quiet)
             if run_dir:
                 print(f"  {color.paint('evidence', 'gray')} {os.path.join(run_dir, 'report.md')}")
-        return EXIT_OK
+        return _fail_exit(flat, args.fail_on)
     finally:
         if args.keep:
             print(f"  lab still running on {target} (ctrl-c to stop)")
@@ -420,14 +442,18 @@ def cmd_scope(args: argparse.Namespace) -> int:
         return EXIT_ERROR
     state = scope.load(args.file)
     if args.scope_command == "add":
+        pattern = (args.pattern or "").strip()
+        if not pattern:
+            print(color.paint("error: scope pattern cannot be empty", "red"))
+            return EXIT_ERROR
         program = next((p for p in state.programs if p.id == args.program), None)
         if program is None:
             program = scope.Program(id=args.program, name=args.name or args.program)
             state.programs.append(program)
-        program.in_scope.append(args.pattern)
-        program.out_of_scope.extend(args.out)
+        program.in_scope.append(pattern)
+        program.out_of_scope.extend(item.strip() for item in args.out if item.strip())
         path = scope.save(state, args.file)
-        print(f"added {args.pattern} to '{program.id}' ({path})")
+        print(f"added {pattern} to '{program.id}' ({path})")
         return EXIT_OK
     if args.scope_command == "list":
         if not state.programs:
@@ -449,13 +475,20 @@ def cmd_scope(args: argparse.Namespace) -> int:
         before = len(state.programs)
         state.programs = [p for p in state.programs if p.id != args.program]
         scope.save(state, args.file)
-        print("removed" if len(state.programs) < before else "no such program")
-        return EXIT_OK
+        if len(state.programs) < before:
+            print("removed")
+            return EXIT_OK
+        print(color.paint(f"no such program: {args.program}", "red"))
+        return EXIT_ERROR
     return EXIT_ERROR
 
 
 def cmd_pin(args: argparse.Namespace) -> int:
     color.set_mode(args.color)
+    problem = _validate_targets([args.target])
+    if problem:
+        print(color.paint(f"error: {problem}", "red"))
+        return EXIT_ERROR
     state = scope.load(args.scope_file)
     allowed, reason, _program = scope.check(args.target, state, args.i_own_this_target)
     if not allowed:
@@ -477,6 +510,10 @@ def cmd_pin(args: argparse.Namespace) -> int:
 
 def cmd_diff(args: argparse.Namespace) -> int:
     color.set_mode(args.color)
+    problem = _validate_targets([args.target])
+    if problem:
+        print(color.paint(f"error: {problem}", "red"))
+        return EXIT_ERROR
     state = scope.load(args.scope_file)
     allowed, reason, _program = scope.check(args.target, state, args.i_own_this_target)
     if not allowed:
@@ -513,6 +550,12 @@ def cmd_report(args: argparse.Namespace) -> int:
         return EXIT_ERROR
     with open(findings_file, "r", encoding="utf-8") as handle:
         raw = json.load(handle)
+    required = {"rule", "severity", "title", "target", "detail"}
+    if not isinstance(raw, list) or any(
+        not isinstance(item, dict) or not required <= set(item) for item in raw
+    ):
+        print(color.paint(f"malformed findings.json in {args.run_dir}", "red"))
+        return EXIT_ERROR
     findings = [
         Finding(
             rule=item["rule"],
@@ -624,15 +667,29 @@ def cmd_corpus(args: argparse.Namespace) -> int:
     return _fail_exit(flat, args.fail_on)
 
 
-def cmd_rules(_args: argparse.Namespace) -> int:
+def cmd_rules(args: argparse.Namespace) -> int:
     from wraith import rulebook
 
+    color.set_mode(getattr(args, "color", "auto"))
     for rule_id, description in rulebook.CATALOG:
-        print(f"{rule_id.ljust(24)} {description}")
+        if getattr(args, "quiet", False):
+            print(rule_id)
+        else:
+            print(f"{rule_id.ljust(24)} {description}")
     return EXIT_OK
 
 
+def _safe_stdio() -> None:
+    """Degrade unencodable output to '?' instead of crashing on a legacy terminal."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):  # pragma: no cover - non-TextIO streams
+            pass
+
+
 def main(argv: Optional[List[str]] = None) -> int:
+    _safe_stdio()
     parser = build_parser()
     args = parser.parse_args(argv)
     if not args.command:
@@ -668,4 +725,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return EXIT_ERROR
     except FileNotFoundError as error:
         print(color.paint(f"file not found: {error.filename}", "red"))
+        return EXIT_ERROR
+    except json.JSONDecodeError as error:
+        print(color.paint(f"invalid JSON: {error}", "red"))
+        return EXIT_ERROR
+    except OSError as error:
+        print(color.paint(f"cannot write output: {error}", "red"))
         return EXIT_ERROR
