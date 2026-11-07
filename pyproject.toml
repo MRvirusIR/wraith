@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wraithhunt"
-version = "0.1.0"
+version = "0.1.1"
 description = "Proof of impact for AI attack surfaces. Probe MCP servers, catch tool poisoning, ship bounty-grade evidence."
 readme = "README.md"
 requires-python = ">=3.9"

@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.1.1 — 2026-11-06
+
+Hardening release. Found by pointing the tool at hostile servers and bad input;
+nothing here changes a detection rule or the report format.
+
+- Fixed a crash on a malformed target URL (`ValueError: unknown url type`). Targets are
+  now validated up front, so `wraith probe not-a-url` exits `2` with a readable message.
+- Fixed a crash on a JSON-RPC batch reply (`'list' object has no attribute 'get'`). Batched
+  replies, in both JSON and SSE form, are now unwrapped to the matching request id.
+- Non-object JSON replies (`"hello"`, `42`, `null`) are rejected with a clear MCP error
+  instead of an `AttributeError`.
+- `wraith analyze` now reports malformed JSON as `invalid JSON: ...` and exits `2`
+  instead of dumping a traceback.
+- `wraith report` validates `findings.json` and refuses a corrupt bundle with
+  `malformed findings.json` instead of a `TypeError`.
+- An unwritable evidence directory now prints `cannot write output: ...` and exits `2`.
+- `wraith scope add` rejects an empty pattern and trims surrounding whitespace.
+- `wraith scope remove` on an unknown program exits `2` instead of `0`.
+- A bad `--header` value is a usage error (exit `2`) rather than exit `1`.
+- `wraith rules` accepts the shared `--color` and `--quiet` flags, so it behaves like
+  every other subcommand.
+- `wraith demo` gained `--fail-on`, matching `probe`, `analyze` and `corpus`.
+- Output is written with `errors="replace"`, so an unencodable character degrades to `?`
+  instead of raising `UnicodeEncodeError` on a legacy terminal.
+- 23 new regression tests, 83 total, one per fixed failure mode.
+
 ## 0.1.0 — 2026-11-06
 
 First release.
