@@ -52,9 +52,9 @@ class MCPClient:
 
     def _post(self, payload: Dict[str, Any], expect_reply: bool = True) -> Optional[Dict[str, Any]]:
         body = json.dumps(payload).encode()
-        request = Request(self.url, data=body, headers=self._request_headers(), method="POST")
         started = time.time()
         try:
+            request = Request(self.url, data=body, headers=self._request_headers(), method="POST")
             with urlopen(request, timeout=self.timeout) as response:
                 session = response.headers.get("Mcp-Session-Id")
                 if session:
@@ -72,6 +72,8 @@ class MCPClient:
             raise MCPError(f"cannot reach {self.url}: {getattr(error, 'reason', error)}") from error
         except OSError as error:
             raise MCPError(f"connection failed for {self.url}: {error}") from error
+        except ValueError as error:
+            raise MCPError(f"invalid target URL {self.url!r}: {error}") from error
 
         elapsed = round((time.time() - started) * 1000)
         entry = {
@@ -97,6 +99,19 @@ class MCPClient:
         return message
 
     @staticmethod
+    def _select(message: Any, want_id: Any) -> Optional[Dict[str, Any]]:
+        """Pick our JSON-RPC object out of a single reply or a batched one."""
+        if isinstance(message, dict):
+            return message
+        if isinstance(message, list):
+            objects = [item for item in message if isinstance(item, dict)]
+            for item in objects:
+                if want_id is not None and item.get("id") == want_id:
+                    return item
+            return objects[0] if objects else None
+        return None
+
+    @staticmethod
     def _parse_body(raw: bytes, content_type: str, want_id: Any) -> Optional[Dict[str, Any]]:
         text = raw.decode("utf-8", "replace").strip()
         if not text:
@@ -113,13 +128,20 @@ class MCPClient:
                     message = json.loads(chunk)
                 except json.JSONDecodeError:
                     continue
-                if want_id is None or message.get("id") == want_id:
-                    return message
+                selected = MCPClient._select(message, want_id)
+                if selected is None:
+                    continue
+                if want_id is None or selected.get("id") == want_id:
+                    return selected
             return None
         try:
-            return json.loads(text)
+            message = json.loads(text)
         except json.JSONDecodeError as error:
             raise MCPError(f"target did not return JSON-RPC (content-type: {content_type})") from error
+        selected = MCPClient._select(message, want_id)
+        if selected is None:
+            raise MCPError(f"target did not return JSON-RPC (content-type: {content_type})")
+        return selected
 
     def _rpc(self, method: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         self._next_id += 1
